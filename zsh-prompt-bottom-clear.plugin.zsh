@@ -10,8 +10,8 @@
 
 zmodload zsh/system zsh/terminfo || return
 
-# Portable cursor hide/show support is required.
-(( $+terminfo[civis] && $+terminfo[cnorm] )) || return
+# Portable cursor visibility and one-row cursor movement are required.
+(( $+terminfo[civis] && $+terminfo[cnorm] && $+terminfo[cuu1] )) || return
 
 # Open the controlling terminal.
 #
@@ -76,7 +76,12 @@ _prompt_bottom_cursor_show() {
 }
 
 # Core terminal operation.
+#
+# With an argument of 1, leave the cursor one row above the normal
+# bottom position. This is used by the shell command path because zsh
+# will render a fresh prompt after the command returns.
 _prompt_bottom_clear_terminal() {
+    local -i reserve_prompt_row=${1:-0}
     local -i _prompt_bottom_cursor_x _prompt_bottom_cursor_y
 
     _prompt_bottom_cursor_hide
@@ -86,6 +91,10 @@ _prompt_bottom_clear_terminal() {
         # The previous viewport remains available in scrollback.
         builtin print -rnu $_prompt_bottom_tty_fd -- \
             "${(pl:$((2 * LINES - _prompt_bottom_cursor_y - 1))::\n:)}"
+
+        if (( reserve_prompt_row )); then
+            builtin echoti cuu1 >&$_prompt_bottom_tty_fd
+        fi
     fi
 
     _prompt_bottom_cursor_show
@@ -109,7 +118,7 @@ clear() {
     if (( ARGC )); then
         command clear "$@"
     else
-        _prompt_bottom_clear_terminal
+        _prompt_bottom_clear_terminal 1
     fi
 }
 
