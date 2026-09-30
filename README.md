@@ -11,7 +11,7 @@ The implementation is based on the same terminal technique used by zsh4humans v5
 - Uses a dedicated controlling-TTY file descriptor instead of stdin/stdout/stderr.
 - Compatible with Powerlevel10k instant prompt.
 - Works directly in modern VT/xterm-compatible terminals and inside tmux.
-- Uses terminfo for cursor visibility control.
+- Uses terminfo for cursor visibility and cursor movement.
 
 ## Requirements
 
@@ -45,7 +45,7 @@ Press `Ctrl-L` or run:
 clear
 ```
 
-Both use the same terminal operation. The `Ctrl-L` path additionally invalidates and redraws ZLE, while the `clear` command deliberately does not call ZLE because it runs outside the line editor.
+Both use the same terminal operation. The `Ctrl-L` path additionally invalidates and redraws ZLE. The `clear` command deliberately does not call ZLE; instead it leaves the cursor one row higher with the terminfo `cuu1` capability so the fresh prompt rendered by zsh lands at the same vertical position.
 
 If arguments are supplied to `clear`, they are passed through to the external `clear` command so implementation-specific options continue to work.
 
