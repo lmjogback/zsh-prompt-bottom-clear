@@ -11,7 +11,7 @@ The implementation is based on the same terminal technique used by zsh4humans v5
 - Uses a dedicated controlling-TTY file descriptor instead of stdin/stdout/stderr.
 - Compatible with Powerlevel10k instant prompt.
 - Works directly in modern VT/xterm-compatible terminals and inside tmux.
-- Uses terminfo for cursor visibility and cursor movement.
+- Uses terminfo for cursor visibility control.
 
 ## Requirements
 
@@ -45,9 +45,7 @@ Press `Ctrl-L` or run:
 clear
 ```
 
-Both use the same terminal operation. The `Ctrl-L` path additionally invalidates and redraws ZLE. The `clear` command deliberately does not call ZLE; instead it leaves the cursor one row higher with the terminfo `cuu1` capability so the fresh prompt rendered by zsh lands at the same vertical position.
-
-If arguments are supplied to `clear`, they are passed through to the external `clear` command so implementation-specific options continue to work.
+Both use the same `prompt-bottom-clear` implementation, matching the approach used by zsh4humans. The plugin aliases plain `clear` to that function and also registers it as the `Ctrl-L` ZLE widget.
 
 The plugin registers the public ZLE widget:
 
@@ -80,7 +78,7 @@ When `Ctrl-L` is pressed or plain `clear` is run, the plugin:
 3. Reads the terminal's CPR response (`CSI <row>;<column> R`).
 4. Writes enough newlines to move to the bottom and scroll one full viewport.
 5. Restores cursor visibility.
-6. For `Ctrl-L` only, invalidates and redraws the ZLE display.
+6. Invalidates and redraws the ZLE display.
 
 The old viewport is therefore moved into scrollback instead of being erased.
 
