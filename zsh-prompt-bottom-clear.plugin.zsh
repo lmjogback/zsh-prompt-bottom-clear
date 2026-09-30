@@ -10,8 +10,8 @@
 
 zmodload zsh/system zsh/terminfo || return
 
-# Portable cursor visibility and one-row cursor movement are required.
-(( $+terminfo[civis] && $+terminfo[cnorm] && $+terminfo[cuu1] )) || return
+# Portable cursor hide/show support is required.
+(( $+terminfo[civis] && $+terminfo[cnorm] )) || return
 
 # Open the controlling terminal.
 #
@@ -75,13 +75,11 @@ _prompt_bottom_cursor_show() {
     builtin print -rnu $_prompt_bottom_tty_fd -- "$cnorm"
 }
 
-# Core terminal operation.
+# Public clear function and ZLE widget.
 #
-# With an argument of 1, leave the cursor one row above the normal
-# bottom position. This is used by the shell command path because zsh
-# will render a fresh prompt after the command returns.
-_prompt_bottom_clear_terminal() {
-    local -i reserve_prompt_row=${1:-0}
+# This intentionally mirrors zsh4humans: the same function is used both
+# as a normal shell command and as a ZLE widget.
+prompt-bottom-clear() {
     local -i _prompt_bottom_cursor_x _prompt_bottom_cursor_y
 
     _prompt_bottom_cursor_hide
@@ -91,36 +89,16 @@ _prompt_bottom_clear_terminal() {
         # The previous viewport remains available in scrollback.
         builtin print -rnu $_prompt_bottom_tty_fd -- \
             "${(pl:$((2 * LINES - _prompt_bottom_cursor_y - 1))::\n:)}"
-
-        if (( reserve_prompt_row )); then
-            builtin echoti cuu1 >&$_prompt_bottom_tty_fd
-        fi
     fi
+
+    builtin zle -I
+    builtin zle -R
 
     _prompt_bottom_cursor_show
 }
 
-# Public ZLE widget.
-prompt-bottom-clear() {
-    _prompt_bottom_clear_terminal
-
-    # Direct terminal output has invalidated ZLE's display state.
-    builtin zle -I
-    builtin zle -R
-}
-
-# Replace the normal clear command for the no-argument case.
-#
-# Unlike the ZLE widget, this runs outside ZLE and therefore deliberately
-# does not call zle -I or zle -R. Arguments are passed through to the
-# external clear command so implementation-specific options keep working.
-clear() {
-    if (( ARGC )); then
-        command clear "$@"
-    else
-        _prompt_bottom_clear_terminal 1
-    fi
-}
+# Use the same implementation for the clear command as for Ctrl-L.
+alias clear=prompt-bottom-clear
 
 _prompt_bottom_init() {
     _prompt_bottom_init_tty || return
