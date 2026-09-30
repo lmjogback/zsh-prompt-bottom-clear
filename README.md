@@ -90,6 +90,10 @@ Manually tested in:
 - Ghostty → tmux → Zsh
 - Powerlevel10k with instant prompt enabled
 
+## Acknowledgements
+
+The terminal handling and prompt-at-bottom algorithm are derived from `zsh4humans` by Roman Perepelitsa, licensed under the MIT License.
+
 ## License
 
 MIT
