@@ -100,6 +100,19 @@ prompt-bottom-clear() {
     builtin zle -R
 }
 
+# Replace the normal clear command for the no-argument case.
+#
+# Unlike the ZLE widget, this runs outside ZLE and therefore deliberately
+# does not call zle -I or zle -R. Arguments are passed through to the
+# external clear command so implementation-specific options keep working.
+clear() {
+    if (( ARGC )); then
+        command clear "$@"
+    else
+        _prompt_bottom_clear_terminal
+    fi
+}
+
 _prompt_bottom_init() {
     _prompt_bottom_init_tty || return
 
