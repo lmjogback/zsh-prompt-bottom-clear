@@ -7,7 +7,7 @@ The implementation is based on the same terminal technique used by zsh4humans v5
 ## Features
 
 - Keeps previous terminal contents in scrollback.
-- Redraws the prompt at the bottom after `Ctrl-L`.
+- Redraws the prompt at the bottom after `Ctrl-L` or the plain `clear` command.
 - Uses a dedicated controlling-TTY file descriptor instead of stdin/stdout/stderr.
 - Compatible with Powerlevel10k instant prompt.
 - Works directly in modern VT/xterm-compatible terminals and inside tmux.
@@ -39,7 +39,15 @@ Load it after plugins or shell integrations that may change key bindings so that
 
 ## Usage
 
-Press `Ctrl-L`.
+Press `Ctrl-L` or run:
+
+```zsh
+clear
+```
+
+Both use the same terminal operation. The `Ctrl-L` path additionally invalidates and redraws ZLE, while the `clear` command deliberately does not call ZLE because it runs outside the line editor.
+
+If arguments are supplied to `clear`, they are passed through to the external `clear` command so implementation-specific options continue to work.
 
 The plugin registers the public ZLE widget:
 
@@ -65,14 +73,14 @@ Expected output:
 
 The plugin opens the controlling terminal on a dedicated read/write file descriptor. This avoids interference from startup helpers such as Powerlevel10k instant prompt, which may temporarily redirect file descriptors 0, 1 and 2 while `.zshrc` is loading.
 
-When `Ctrl-L` is pressed, the plugin:
+When `Ctrl-L` is pressed or plain `clear` is run, the plugin:
 
 1. Hides the cursor using terminfo.
 2. Sends DSR (`CSI 6 n`) to query the current cursor position.
 3. Reads the terminal's CPR response (`CSI <row>;<column> R`).
 4. Writes enough newlines to move to the bottom and scroll one full viewport.
 5. Restores cursor visibility.
-6. Invalidates and redraws the ZLE display.
+6. For `Ctrl-L` only, invalidates and redraws the ZLE display.
 
 The old viewport is therefore moved into scrollback instead of being erased.
 
