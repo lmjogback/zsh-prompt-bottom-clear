@@ -87,6 +87,20 @@ It is enabled only inside tmux by default because tmux always answers the cursor
 
 The move is skipped if keys have already been typed when the first prompt appears, so typed-ahead input is never lost.
 
+### With Powerlevel10k instant prompt
+
+By default, the move happens once `.zshrc` has finished loading, so the instant prompt first appears at the top and then jumps to the bottom. To avoid that, also source the startup file **before** the instant prompt block:
+
+```zsh
+source ~/.config/zsh/plugins/zsh-prompt-bottom-clear/zsh-prompt-bottom-clear.startup.zsh
+
+# Powerlevel10k instant prompt block follows here.
+```
+
+Set the `startup-at-bottom` zstyle, if any, before this line. Load the plugin itself as usual later in `.zshrc`; the startup file only moves the cursor and sets up no key bindings.
+
+Powerlevel10k's instant prompt reserves one row more than the prompt needs, so it is drawn one row above the bottom. The plugin moves it down that last row once `.zshrc` has loaded.
+
 ## How it works
 
 The plugin opens the controlling terminal on a dedicated read/write file descriptor. This avoids interference from startup helpers such as Powerlevel10k instant prompt, which may temporarily redirect file descriptors 0, 1 and 2 while `.zshrc` is loading.

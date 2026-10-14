@@ -140,11 +140,35 @@ _prompt_bottom_startup_enabled() {
     esac
 }
 
+# Move the cursor to the bottom before anything has been drawn, so the
+# first prompt appears there directly.
+#
+# Called from zsh-prompt-bottom-clear.startup.zsh, which is sourced
+# before Powerlevel10k instant prompt. The instant prompt is then drawn
+# at the bottom right away instead of jumping there once .zshrc has
+# finished loading.
+_prompt_bottom_startup_early() {
+    _prompt_bottom_startup_enabled || return 0
+    ! zselect -t0 -r $_prompt_bottom_tty_fd || return 0
+
+    local -i _prompt_bottom_cursor_x _prompt_bottom_cursor_y
+    _prompt_bottom_get_cursor_position || return 0
+
+    builtin print -rnu $_prompt_bottom_tty_fd -- \
+        "${(pl:$((LINES - _prompt_bottom_cursor_y))::\n:)}"
+}
+
 # Move the first prompt to the bottom of the terminal.
 #
 # Runs once, as a line-init hook, after the first prompt is drawn.
-# Doing it earlier does not work with Powerlevel10k instant prompt,
-# which moves the cursor back to where the instant prompt started.
+# Doing it earlier from the plugin does not work with Powerlevel10k
+# instant prompt, which moves the cursor back to where the instant
+# prompt started.
+#
+# This also runs after _prompt_bottom_startup_early. Powerlevel10k
+# instant prompt reserves a row more than the prompt uses, so its
+# prompt can end one row above the bottom; that row is made up here.
+# If the prompt is already at the bottom, nothing is done.
 #
 # Blank lines are inserted at the top of the screen, so the prompt
 # and any output above it move down together. The rows pushed off the
@@ -172,6 +196,13 @@ _prompt_bottom_startup() {
 
 _prompt_bottom_init() {
     _prompt_bottom_init_tty || return
+
+    # Sourced from zsh-prompt-bottom-clear.startup.zsh: only move the
+    # cursor. Key bindings are set up when the plugin is loaded later.
+    if (( ${+_prompt_bottom_startup_only} )); then
+        _prompt_bottom_startup_early
+        return
+    fi
 
     builtin zle -N prompt-bottom-clear
     builtin bindkey '^L' prompt-bottom-clear
