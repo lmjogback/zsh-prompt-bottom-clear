@@ -20,9 +20,11 @@ The implementation is based on the same terminal technique used by zsh4humans v5
 - Zsh
 - An interactive shell
 - A controlling terminal that supports ANSI/VT DSR/CPR cursor position reporting
-- `zsh/system` and `zsh/terminfo`
+- `zsh/system`, `zsh/terminfo` and `zsh/zselect`
 
 ## Installation
+
+### Manually
 
 Clone the repository:
 
@@ -37,7 +39,15 @@ Then source the plugin from `.zshrc`:
 source ~/.config/zsh/plugins/zsh-prompt-bottom-clear/zsh-prompt-bottom-clear.plugin.zsh
 ```
 
-Load it after plugins or shell integrations that may change key bindings so that its `Ctrl-L` binding wins.
+### With zinit
+
+```zsh
+zinit light lmjogback/zsh-prompt-bottom-clear
+```
+
+zinit clones the repository on first use and sources `zsh-prompt-bottom-clear.plugin.zsh`.
+
+Whichever method you use, load the plugin after plugins or shell integrations that may change key bindings so that its `Ctrl-L` binding wins.
 
 ## Usage
 
@@ -97,7 +107,18 @@ source ~/.config/zsh/plugins/zsh-prompt-bottom-clear/zsh-prompt-bottom-clear.sta
 # Powerlevel10k instant prompt block follows here.
 ```
 
-Set the `startup-at-bottom` zstyle, if any, before this line. Load the plugin itself as usual later in `.zshrc`; the startup file only moves the cursor and sets up no key bindings.
+With zinit, the plugin is not loaded yet at that point, so source the file from zinit's plugin directory. The check skips it until zinit has cloned the plugin:
+
+```zsh
+() {
+    local f=${XDG_DATA_HOME:-$HOME/.local/share}/zinit/plugins/lmjogback---zsh-prompt-bottom-clear/zsh-prompt-bottom-clear.startup.zsh
+    [[ -r $f ]] && source $f
+}
+```
+
+This assumes the default `ZINIT[HOME_DIR]`; adjust the path if you have changed it.
+
+Set the `startup-at-bottom` zstyle, if any, before sourcing the startup file. Load the plugin itself as usual later in `.zshrc`; the startup file only moves the cursor and sets up no key bindings.
 
 Powerlevel10k's instant prompt reserves one row more than the prompt needs, so it is drawn one row above the bottom. The plugin moves it down that last row once `.zshrc` has loaded.
 
