@@ -19,6 +19,9 @@ zmodload zsh/system zsh/terminfo || return
 # stdout or stderr. This is important during shell initialization,
 # where e.g. Powerlevel10k instant prompt can redirect fd 0, 1 and 2.
 _prompt_bottom_init_tty() {
+    # Already open, e.g. when the plugin is sourced again.
+    [[ -v _prompt_bottom_tty_fd ]] && return
+
     if [[ -n ${TTY-} && -w $TTY ]]; then
         typeset -gi _prompt_bottom_tty_fd
         sysopen -o cloexec -rwu _prompt_bottom_tty_fd -- "$TTY" || return
@@ -97,14 +100,16 @@ prompt-bottom-clear() {
     _prompt_bottom_cursor_show
 }
 
-# Use the same implementation for the clear command as for Ctrl-L.
-alias clear=prompt-bottom-clear
-
 _prompt_bottom_init() {
     _prompt_bottom_init_tty || return
 
     builtin zle -N prompt-bottom-clear
     builtin bindkey '^L' prompt-bottom-clear
+
+    # Use the same implementation for the clear command as for Ctrl-L.
+    # Only alias it once the terminal is open, so plain clear keeps
+    # working when the plugin cannot initialize.
+    alias clear=prompt-bottom-clear
 }
 
 _prompt_bottom_init
