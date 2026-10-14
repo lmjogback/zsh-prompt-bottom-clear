@@ -101,6 +101,27 @@ prompt-bottom-clear() {
     _prompt_bottom_cursor_show
 }
 
+# Clear the screen and the scrollback, then redraw the prompt at the
+# bottom. Bound to Ctrl-Alt-L.
+#
+# Erase the screen, move the cursor to the bottom and let ZLE draw the
+# prompt there before erasing the scrollback (CSI 3 J), so the cleared
+# screen is not pushed into the scrollback again. tmux also clears
+# the pane history on CSI 3 J (verified with tmux 3.6).
+prompt-bottom-clear-hard() {
+    _prompt_bottom_cursor_hide
+
+    builtin print -rnu $_prompt_bottom_tty_fd -- \
+        $'\e[H\e[2J'"${(pl:$((LINES - 1))::\n:)}"
+
+    builtin zle -I
+    builtin zle -R
+
+    builtin print -rnu $_prompt_bottom_tty_fd -- $'\e[3J'
+
+    _prompt_bottom_cursor_show
+}
+
 # Whether to move the first prompt to the bottom.
 #
 #   zstyle ':prompt-bottom-clear:' startup-at-bottom tmux|yes|no
@@ -154,6 +175,9 @@ _prompt_bottom_init() {
 
     builtin zle -N prompt-bottom-clear
     builtin bindkey '^L' prompt-bottom-clear
+
+    builtin zle -N prompt-bottom-clear-hard
+    builtin bindkey '^[^L' prompt-bottom-clear-hard
 
     # Use the same implementation for the clear command as for Ctrl-L.
     # Only alias it once the terminal is open, so plain clear keeps

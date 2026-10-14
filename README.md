@@ -8,6 +8,7 @@ The implementation is based on the same terminal technique used by zsh4humans v5
 
 - Keeps previous terminal contents in scrollback.
 - Redraws the prompt at the bottom after `Ctrl-L` or the plain `clear` command.
+- `Ctrl-Alt-L` also clears the scrollback, then redraws the prompt at the bottom.
 - Inside tmux, also places the first prompt at the bottom when the shell starts.
 - Uses a dedicated controlling-TTY file descriptor instead of stdin/stdout/stderr.
 - Compatible with Powerlevel10k instant prompt.
@@ -48,13 +49,14 @@ clear
 
 Both use the same `prompt-bottom-clear` implementation, matching the approach used by zsh4humans. The plugin aliases plain `clear` to that function and also registers it as the `Ctrl-L` ZLE widget.
 
-The plugin registers the public ZLE widget:
+The plugin registers the public ZLE widgets:
 
 ```text
-prompt-bottom-clear
+prompt-bottom-clear       Ctrl-L      keep the old viewport in scrollback
+prompt-bottom-clear-hard  Ctrl-Alt-L  clear the screen and the scrollback
 ```
 
-and binds it to `Ctrl-L` by default.
+`prompt-bottom-clear-hard` erases the scrollback with `CSI 3 J`. tmux also clears the pane history on this sequence (verified with tmux 3.6).
 
 Verify the binding with:
 
