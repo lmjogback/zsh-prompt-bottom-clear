@@ -8,6 +8,7 @@ The implementation is based on the same terminal technique used by zsh4humans v5
 
 - Keeps previous terminal contents in scrollback.
 - Redraws the prompt at the bottom after `Ctrl-L` or the plain `clear` command.
+- Inside tmux, also places the first prompt at the bottom when the shell starts.
 - Uses a dedicated controlling-TTY file descriptor instead of stdin/stdout/stderr.
 - Compatible with Powerlevel10k instant prompt.
 - Works directly in modern VT/xterm-compatible terminals and inside tmux.
@@ -67,6 +68,23 @@ Expected output:
 "^L" prompt-bottom-clear
 ```
 
+## Prompt at bottom on startup
+
+Inside tmux, the first prompt of a new shell is moved to the bottom of the pane. Output printed during startup is kept directly above it.
+
+This is controlled with a zstyle, which can be set anywhere in `.zshrc`:
+
+```zsh
+# tmux (default): only inside tmux
+# yes: in every terminal
+# no: never
+zstyle ':prompt-bottom-clear:' startup-at-bottom tmux
+```
+
+It is enabled only inside tmux by default because tmux always answers the cursor position query itself. Outside tmux, a terminal that does not support the query would delay the first prompt until the query times out after 5 seconds. Use `yes` if your terminal is known to support it.
+
+The move is skipped if keys have already been typed when the first prompt appears, so typed-ahead input is never lost.
+
 ## How it works
 
 The plugin opens the controlling terminal on a dedicated read/write file descriptor. This avoids interference from startup helpers such as Powerlevel10k instant prompt, which may temporarily redirect file descriptors 0, 1 and 2 while `.zshrc` is loading.
@@ -82,6 +100,8 @@ When `Ctrl-L` is pressed or plain `clear` is run, the plugin:
 
 The old viewport is therefore moved into scrollback instead of being erased.
 
+On startup, the plugin waits until the first prompt has been drawn, queries the cursor position, inserts blank lines at the top of the screen (`CSI <n> L`) and moves the cursor down by the same amount. The prompt and the output above it move down together, and ZLE keeps redrawing correctly because the cursor stays in the same position relative to the prompt. Waiting for the first prompt is what makes this work with Powerlevel10k instant prompt, which restores the cursor to where the instant prompt started.
+
 ## Tested
 
 Manually tested in:
@@ -89,6 +109,7 @@ Manually tested in:
 - Ghostty → Zsh
 - Ghostty → tmux → Zsh
 - Powerlevel10k with instant prompt enabled
+- Prompt at bottom on startup: tmux 3.6 with a plain prompt and with Powerlevel10k instant prompt
 
 ## Acknowledgements
 

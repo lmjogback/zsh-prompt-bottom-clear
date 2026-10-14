@@ -8,7 +8,8 @@
 
 [[ -o interactive ]] || return
 
-zmodload zsh/system zsh/terminfo || return
+zmodload zsh/system zsh/terminfo zsh/zselect || return
+autoload -Uz add-zle-hook-widget
 
 # Portable cursor hide/show support is required.
 (( $+terminfo[civis] && $+terminfo[cnorm] )) || return
@@ -100,6 +101,54 @@ prompt-bottom-clear() {
     _prompt_bottom_cursor_show
 }
 
+# Whether to move the first prompt to the bottom.
+#
+#   zstyle ':prompt-bottom-clear:' startup-at-bottom tmux|yes|no
+#
+# The default, tmux, enables it only inside tmux. tmux always answers
+# the cursor position query itself, whereas a terminal without CPR
+# support would delay the first prompt until the query times out.
+_prompt_bottom_startup_enabled() {
+    local mode
+    zstyle -s ':prompt-bottom-clear:' startup-at-bottom mode || mode=tmux
+
+    case $mode in
+        (yes)  return 0 ;;
+        (tmux) [[ -n ${TMUX-} ]] ;;
+        (*)    return 1 ;;
+    esac
+}
+
+# Move the first prompt to the bottom of the terminal.
+#
+# Runs once, as a line-init hook, after the first prompt is drawn.
+# Doing it earlier does not work with Powerlevel10k instant prompt,
+# which moves the cursor back to where the instant prompt started.
+#
+# Blank lines are inserted at the top of the screen, so the prompt
+# and any output above it move down together. The rows pushed off the
+# bottom are below the cursor and therefore empty. Since the cursor
+# keeps its position relative to the prompt, ZLE can go on redrawing
+# without being told.
+#
+# The cursor position query would swallow keys typed during startup,
+# so skip it if input is already pending.
+_prompt_bottom_startup() {
+    add-zle-hook-widget -d line-init _prompt_bottom_startup
+
+    _prompt_bottom_startup_enabled || return 0
+    ! zselect -t0 -r $_prompt_bottom_tty_fd || return 0
+
+    local -i _prompt_bottom_cursor_x _prompt_bottom_cursor_y
+    _prompt_bottom_get_cursor_position || return 0
+
+    local -i n=$(( LINES - _prompt_bottom_cursor_y ))
+    (( n > 0 )) || return 0
+
+    builtin print -rnu $_prompt_bottom_tty_fd -- \
+        $'\e[H\e['${n}$'L\e['${LINES}';'${_prompt_bottom_cursor_x}'H'
+}
+
 _prompt_bottom_init() {
     _prompt_bottom_init_tty || return
 
@@ -110,6 +159,9 @@ _prompt_bottom_init() {
     # Only alias it once the terminal is open, so plain clear keeps
     # working when the plugin cannot initialize.
     alias clear=prompt-bottom-clear
+
+    builtin zle -N _prompt_bottom_startup
+    add-zle-hook-widget line-init _prompt_bottom_startup
 }
 
 _prompt_bottom_init
